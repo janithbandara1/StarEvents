@@ -1,5 +1,175 @@
 @{
     ViewData["Title"] = "Admin Dashboard";
 }
-<h2>Admin Dashboard</h2>
-<p>This is the Admin Dashboard view. Implement admin overview here.</p>
+
+<div class="d-flex">
+    <!-- Side Navbar -->
+    <nav class="flex-shrink-0 p-3 bg-light" style="width: 250px; min-height: 100vh;">
+        <h4 class="mb-4">Admin</h4>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a class="nav-link active" id="menu-users" href="#" onclick="showSection('users')">Manage Users</a>
+            </li>
+            <li>
+                <a class="nav-link" id="menu-reports" href="#" onclick="showSection('reports')">Reports</a>
+                <ul class="nav flex-column ms-3">
+                    <li>
+                        <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">Sales Report</a>
+                    </li>
+                    <li>
+                        <a class="nav-link" id="menu-users-report" href="#" onclick="showSection('users-report')">Users Report</a>
+                    </li>
+                    <li>
+                        <a class="nav-link" id="menu-events-report" href="#" onclick="showSection('events-report')">Events Report</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-grow-1 p-4">
+        <!-- Manage Users Section -->
+        <div id="section-users">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Manage Users</h3>
+                <button class="btn btn-primary" onclick="openUserDialog('add')">Add User</button>
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <!-- Users will be loaded here via JS or server-side rendering -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sales Report Section -->
+        <div id="section-sales-report" style="display:none;">
+            <h3>Sales Report</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Tickets Sold</th>
+                        <th>Total Sales</th>
+                    </tr>
+                </thead>
+                <tbody id="sales-report-table-body">
+                    <!-- Sales report data will be loaded here via JS or server-side rendering -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Users Report Section -->
+        <div id="section-users-report" style="display:none;">
+            <h3>Users Report</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Events Organized</th>
+                        <th>Tickets Purchased</th>
+                    </tr>
+                </thead>
+                <tbody id="users-report-table-body">
+                    <!-- Users report data will be loaded here via JS or server-side rendering -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Events Report Section -->
+        <div id="section-events-report" style="display:none;">
+            <h3>Events Report</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Location</th>
+                        <th>Organizer</th>
+                        <th>Tickets Sold</th>
+                    </tr>
+                </thead>
+                <tbody id="events-report-table-body">
+                    <!-- Events report data will be loaded here via JS or server-side rendering -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Add/Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId" />
+                    <div class="mb-3">
+                        <label for="userName" class="form-label">User Name</label>
+                        <input type="text" class="form-control" id="userName" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="userEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="userEmail" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="userRole" class="form-label">Role</label>
+                        <select class="form-select" id="userRole" required>
+                            <option value="Admin">Admin</option>
+                            <option value="Organizer">Organizer</option>
+                            <option value="Customer">Customer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userStatus" class="form-label">Status</label>
+                        <select class="form-select" id="userStatus" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showSection(section) {
+            document.getElementById('section-users').style.display = section === 'users' ? '' : 'none';
+            document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
+            document.getElementById('section-users-report').style.display = section === 'users-report' ? '' : 'none';
+            document.getElementById('section-events-report').style.display = section === 'events-report' ? '' : 'none';
+        }
+        function openUserDialog(mode, userId = null) {
+            // Set up modal for add/edit
+            if (mode === 'add') {
+                document.getElementById('userModalLabel').innerText = 'Add User';
+                document.getElementById('userForm').reset();
+                document.getElementById('userId').value = '';
+            } else {
+                document.getElementById('userModalLabel').innerText = 'Edit User';
+                // Load user data for editing (AJAX or server-side)
+            }
+            var userModal = new bootstrap.Modal(document.getElementById('userModal'));
+            userModal.show();
+        }
+        // TODO: Implement AJAX for loading users, editing, deleting, and saving
+    </script>
+}

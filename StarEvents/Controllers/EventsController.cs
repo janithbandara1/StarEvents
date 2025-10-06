@@ -3,7 +3,7 @@ using StarEvents.Models;
 
 namespace StarEvents.Controllers
 {
-    public class EventsController : Controller
+    public class EventsController : BaseController
     {
         private readonly StarEventsDbContext _context;
         public EventsController(StarEventsDbContext context)

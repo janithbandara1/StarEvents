@@ -3,15 +3,13 @@ using StarEvents.Models;
 
 namespace StarEvents.Controllers
 {
-    public class AdminController : BaseController
+    public class OrganizerController : BaseController
     {
         private readonly StarEventsDbContext _context;
-        public AdminController(StarEventsDbContext context)
+        public OrganizerController(StarEventsDbContext context)
         {
             _context = context;
         }
-
-        // Actions for admin dashboard, user/event/ticket management, and reports will go here
         public IActionResult Dashboard()
         {
             return View();

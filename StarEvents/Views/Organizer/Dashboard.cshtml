@@ -1,0 +1,130 @@
+@{
+    ViewData["Title"] = "Organizer Dashboard";
+}
+
+<div class="d-flex">
+    <!-- Side Navbar -->
+    <nav class="flex-shrink-0 p-3 bg-light" style="width: 250px; min-height: 100vh;">
+        <h4 class="mb-4">Organizer</h4>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a class="nav-link active" id="menu-events" href="#" onclick="showSection('events')">Manage Events</a>
+            </li>
+            <li>
+                <a class="nav-link" id="menu-reports" href="#" onclick="showSection('reports')">Reports</a>
+                <ul class="nav flex-column ms-3">
+                    <li>
+                        <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">Sales Report</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-grow-1 p-4">
+        <!-- Manage Events Section -->
+        <div id="section-events">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Manage Events</h3>
+                <button class="btn btn-primary" onclick="openEventDialog('add')">Add Event</button>
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Location</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="events-table-body">
+                    <!-- Events will be loaded here via JS or server-side rendering -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sales Report Section -->
+        <div id="section-sales-report" style="display:none;">
+            <h3>Sales Report</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Tickets Sold</th>
+                        <th>Total Sales</th>
+                    </tr>
+                </thead>
+                <tbody id="sales-report-table-body">
+                    <!-- Sales report data will be loaded here via JS or server-side rendering -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Add/Edit Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <input type="hidden" id="eventId" />
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="eventTitle" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="eventDate" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventLocation" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="eventLocation" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventPrice" class="form-label">Price</label>
+                        <input type="number" class="form-control" id="eventPrice" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventStatus" class="form-label">Status</label>
+                        <select class="form-select" id="eventStatus" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showSection(section) {
+            document.getElementById('section-events').style.display = section === 'events' ? '' : 'none';
+            document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
+        }
+        function openEventDialog(mode, eventId = null) {
+            // Set up modal for add/edit
+            if (mode === 'add') {
+                document.getElementById('eventModalLabel').innerText = 'Add Event';
+                document.getElementById('eventForm').reset();
+                document.getElementById('eventId').value = '';
+            } else {
+                document.getElementById('eventModalLabel').innerText = 'Edit Event';
+                // Load event data for editing (AJAX or server-side)
+            }
+            var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+            eventModal.show();
+        }
+        // TODO: Implement AJAX for loading events, editing, deleting, and saving
+    </script>
+}

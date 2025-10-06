@@ -98,11 +98,11 @@ namespace StarEvents.Controllers
                     }
                     else if (user.Role == "Organizer")
                     {
-                        return RedirectToAction("Index", "Events");
+                        return RedirectToAction("Dashboard", "Organizer");
                     }
                     else // Customer
                     {
-                        return RedirectToAction("Index", "Home");
+                        return RedirectToAction("Dashboard", "Customer");
                     }
                 }
 
