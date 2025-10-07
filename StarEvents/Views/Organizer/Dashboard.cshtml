@@ -1,7 +1,19 @@
 @{
     ViewData["Title"] = "Organizer Dashboard";
+    Layout = null;
 }
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - StarEvents</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/StarEvents.styles.css" asp-append-version="true" />
+</head>
+<body>
 <div class="d-flex">
     <!-- Side Navbar -->
     <nav class="flex-shrink-0 p-3 bg-light" style="width: 250px; min-height: 100vh;">
@@ -106,25 +118,28 @@
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function showSection(section) {
-            document.getElementById('section-events').style.display = section === 'events' ? '' : 'none';
-            document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script>
+    function showSection(section) {
+        document.getElementById('section-events').style.display = section === 'events' ? '' : 'none';
+        document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
+    }
+    function openEventDialog(mode, eventId = null) {
+        // Set up modal for add/edit
+        if (mode === 'add') {
+            document.getElementById('eventModalLabel').innerText = 'Add Event';
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
+        } else {
+            document.getElementById('eventModalLabel').innerText = 'Edit Event';
+            // Load event data for editing (AJAX or server-side)
         }
-        function openEventDialog(mode, eventId = null) {
-            // Set up modal for add/edit
-            if (mode === 'add') {
-                document.getElementById('eventModalLabel').innerText = 'Add Event';
-                document.getElementById('eventForm').reset();
-                document.getElementById('eventId').value = '';
-            } else {
-                document.getElementById('eventModalLabel').innerText = 'Edit Event';
-                // Load event data for editing (AJAX or server-side)
-            }
-            var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
-            eventModal.show();
-        }
-        // TODO: Implement AJAX for loading events, editing, deleting, and saving
-    </script>
-}
+        var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+        eventModal.show();
+    }
+    // TODO: Implement AJAX for loading events, editing, deleting, and saving
+</script>
+</body>
+</html>

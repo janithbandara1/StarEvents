@@ -1,7 +1,19 @@
 @{
     ViewData["Title"] = "Admin Dashboard";
+    Layout = null;
 }
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - StarEvents</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/StarEvents.styles.css" asp-append-version="true" />
+</head>
+<body>
 <div class="d-flex">
     <!-- Side Navbar -->
     <nav class="flex-shrink-0 p-3 bg-light" style="width: 250px; min-height: 100vh;">
@@ -149,27 +161,30 @@
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function showSection(section) {
-            document.getElementById('section-users').style.display = section === 'users' ? '' : 'none';
-            document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
-            document.getElementById('section-users-report').style.display = section === 'users-report' ? '' : 'none';
-            document.getElementById('section-events-report').style.display = section === 'events-report' ? '' : 'none';
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script>
+    function showSection(section) {
+        document.getElementById('section-users').style.display = section === 'users' ? '' : 'none';
+        document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
+        document.getElementById('section-users-report').style.display = section === 'users-report' ? '' : 'none';
+        document.getElementById('section-events-report').style.display = section === 'events-report' ? '' : 'none';
+    }
+    function openUserDialog(mode, userId = null) {
+        // Set up modal for add/edit
+        if (mode === 'add') {
+            document.getElementById('userModalLabel').innerText = 'Add User';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+        } else {
+            document.getElementById('userModalLabel').innerText = 'Edit User';
+            // Load user data for editing (AJAX or server-side)
         }
-        function openUserDialog(mode, userId = null) {
-            // Set up modal for add/edit
-            if (mode === 'add') {
-                document.getElementById('userModalLabel').innerText = 'Add User';
-                document.getElementById('userForm').reset();
-                document.getElementById('userId').value = '';
-            } else {
-                document.getElementById('userModalLabel').innerText = 'Edit User';
-                // Load user data for editing (AJAX or server-side)
-            }
-            var userModal = new bootstrap.Modal(document.getElementById('userModal'));
-            userModal.show();
-        }
-        // TODO: Implement AJAX for loading users, editing, deleting, and saving
-    </script>
-}
+        var userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        userModal.show();
+    }
+    // TODO: Implement AJAX for loading users, editing, deleting, and saving
+</script>
+</body>
+</html>
