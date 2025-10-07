@@ -16,21 +16,29 @@
 <body>
 <div class="d-flex">
     <!-- Side Navbar -->
-    <nav class="flex-shrink-0 p-3 bg-light" style="width: 250px; min-height: 100vh;">
-        <h4 class="mb-4">Organizer</h4>
-        <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item">
-                <a class="nav-link active" id="menu-events" href="#" onclick="showSection('events')">Manage Events</a>
-            </li>
-            <li>
-                <a class="nav-link" id="menu-reports" href="#" onclick="showSection('reports')">Reports</a>
-                <ul class="nav flex-column ms-3">
-                    <li>
-                        <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">Sales Report</a>
-                    </li>
-                </ul>
-            </li>
-        </ul>
+    <nav class="flex-shrink-0 p-3 bg-light d-flex flex-column" style="width: 250px; min-height: 100vh;">
+        <div class="flex-grow-1">
+            <h4 class="mb-4">Organizer</h4>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" id="menu-events" href="#" onclick="showSection('events')">Manage Events</a>
+                </li>
+                <li>
+                    <a class="nav-link" id="menu-reports" href="#" onclick="showSection('reports')">Reports</a>
+                    <ul class="nav flex-column ms-3">
+                        <li>
+                            <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">Sales Report</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <!-- Logout Button at Bottom -->
+        <div class="mt-auto pt-3 border-top">
+            <a href="@Url.Action("Logout", "Users")" class="btn btn-outline-danger w-100">
+                <i class="bi bi-box-arrow-right me-2"></i>Logout
+            </a>
+        </div>
     </nav>
 
     <!-- Main Content -->
