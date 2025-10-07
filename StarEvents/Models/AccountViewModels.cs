@@ -45,4 +45,76 @@ namespace StarEvents.Models
         [Display(Name = "Remember Me")]
         public bool RememberMe { get; set; }
     }
+
+    public class CreateEventViewModel
+    {
+        [Required]
+        [Display(Name = "Title")]
+        [StringLength(200)]
+        public string Title { get; set; }
+
+        [Display(Name = "Description")]
+        [StringLength(1000)]
+        public string? Description { get; set; }
+
+        [Display(Name = "Category")]
+        [StringLength(100)]
+        public string? Category { get; set; }
+
+        [Required]
+        [Display(Name = "Location")]
+        [StringLength(200)]
+        public string Location { get; set; }
+
+        [Required]
+        [Display(Name = "Event Date")]
+        [DataType(DataType.Date)]
+        public DateTime EventDate { get; set; }
+
+        [Required]
+        [Display(Name = "Ticket Price")]
+        [Range(0, 10000, ErrorMessage = "Price must be between 0 and 10,000")]
+        public decimal TicketPrice { get; set; }
+
+        [Required]
+        [Display(Name = "Status")]
+        public string Status { get; set; } = "Active";
+    }
+
+    public class EditEventViewModel
+    {
+        public int EventId { get; set; }
+
+        [Required]
+        [Display(Name = "Title")]
+        [StringLength(200)]
+        public string Title { get; set; }
+
+        [Display(Name = "Description")]
+        [StringLength(1000)]
+        public string? Description { get; set; }
+
+        [Display(Name = "Category")]
+        [StringLength(100)]
+        public string? Category { get; set; }
+
+        [Required]
+        [Display(Name = "Location")]
+        [StringLength(200)]
+        public string Location { get; set; }
+
+        [Required]
+        [Display(Name = "Event Date")]
+        [DataType(DataType.Date)]
+        public DateTime EventDate { get; set; }
+
+        [Required]
+        [Display(Name = "Ticket Price")]
+        [Range(0, 10000, ErrorMessage = "Price must be between 0 and 10,000")]
+        public decimal TicketPrice { get; set; }
+
+        [Required]
+        [Display(Name = "Status")]
+        public string Status { get; set; }
+    }
 }
