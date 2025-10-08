@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using StarEvents.Models;
 
 namespace StarEvents.Controllers
@@ -7,15 +8,25 @@ namespace StarEvents.Controllers
     public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly StarEventsDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, StarEventsDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            // Get upcoming events for the public home page
+            var upcomingEvents = await _context.Events
+                .Include(e => e.Organizer)
+                .Where(e => e.Status == "Active" && e.EventDate >= DateTime.Now)
+                .OrderBy(e => e.EventDate)
+                .Take(6) // Show only 6 featured events on home page
+                .ToListAsync();
+                
+            return View(upcomingEvents);
         }
 
         public IActionResult Privacy()

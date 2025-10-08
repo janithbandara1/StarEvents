@@ -1,8 +1,101 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model List<StarEvents.Models.Event>
+@{
+    ViewData["Title"] = "Welcome to StarEvents";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="hero-section text-white py-5 mb-5">
+    <div class="container text-center">
+        <h1 class="display-4 mb-3">Welcome to StarEvents</h1>
+        <p class="lead mb-4">Discover and attend amazing events in your area</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="@Url.Action("Dashboard", "Customer")" class="btn btn-light btn-lg">Browse All Events</a>
+            <a href="@Url.Action("Login", "Users")" class="btn btn-outline-light btn-lg">Sign In</a>
+        </div>
+    </div>
 </div>
+
+@if (Model != null && Model.Any())
+{
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-4">Featured Events</h2>
+            </div>
+        </div>
+        
+        <div class="row">
+            @foreach (var eventItem in Model)
+            {
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge bg-primary">@eventItem.EventDate.ToString("MMM dd")</span>
+                                @if (!string.IsNullOrEmpty(eventItem.Category))
+                                {
+                                    <span class="badge bg-secondary">@eventItem.Category</span>
+                                }
+                            </div>
+                            
+                            <h5 class="card-title mb-3">@eventItem.Title</h5>
+                            
+                            <p class="card-text text-muted mb-3 flex-grow-1">
+                                @if (!string.IsNullOrEmpty(eventItem.Description))
+                                {
+                                    @(eventItem.Description.Length > 100 ? eventItem.Description.Substring(0, 100) + "..." : eventItem.Description)
+                                }
+                                else
+                                {
+                                    <text>No description available.</text>
+                                }
+                            </p>
+                            
+                            <div class="mt-auto">
+                                <div class="d-flex align-items-center mb-2">
+                                    <small class="text-muted">@eventItem.Location</small>
+                                </div>
+                                <div class="d-flex align-items-center mb-3">
+                                    <small class="text-muted">@eventItem.EventDate.ToString("h:mm tt")</small>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="h5 text-success mb-0">$@eventItem.TicketPrice.ToString("0.00")</span>
+                                    <a href="@Url.Action("Dashboard", "Customer")" class="btn btn-primary btn-sm">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <a href="@Url.Action("Dashboard", "Customer")" class="btn btn-primary btn-lg">View All Events</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center py-5">
+                <h3>No Events Available</h3>
+                <p class="text-muted mb-4">There are currently no upcoming events. Check back later!</p>
+                <a href="@Url.Action("Register", "Users")" class="btn btn-primary">Join StarEvents</a>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+    }
+</style>
