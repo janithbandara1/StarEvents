@@ -49,6 +49,15 @@
 
     <!-- Main Content -->
     <div class="flex-grow-1 p-4">
+        <!-- Success Message -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
         <!-- Manage Users Section -->
         <div id="section-users">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -61,12 +70,39 @@
                         <th>User Name</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <th>Status</th>
+                        <th>Created At</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="users-table-body">
-                    <!-- Users will be loaded here via JS or server-side rendering -->
+                    @if (ViewBag.Users != null)
+                    {
+                        @foreach (StarEvents.Models.User user in ViewBag.Users)
+                        {
+                            <tr id="user-row-@user.UserId">
+                                <td>@user.UserName</td>
+                                <td>@user.Email</td>
+                                <td>
+                                    <span class="badge bg-@(user.Role == "Admin" ? "danger" : user.Role == "Organizer" ? "warning text-dark" : "primary")">
+                                        @user.Role
+                                    </span>
+                                </td>
+                                <td>@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="openUserDialog('edit', @user.UserId)">Edit</button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(@user.UserId)">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No users found</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -102,7 +138,25 @@
                     </tr>
                 </thead>
                 <tbody id="users-report-table-body">
-                    <!-- Users report data will be loaded here via JS or server-side rendering -->
+                    @if (ViewBag.Users != null)
+                    {
+                        @foreach (StarEvents.Models.User user in ViewBag.Users)
+                        {
+                            <tr>
+                                <td>@user.UserName</td>
+                                <td>@user.Email</td>
+                                <td>@user.Role</td>
+                                <td>@(user.Events?.Count ?? 0)</td>
+                                <td>@(user.Tickets?.Count ?? 0)</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No users found</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -133,37 +187,51 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="userModalLabel">Add/Edit User</h5>
+                <h5 class="modal-title" id="userModalLabel">Add User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="userForm">
-                    <input type="hidden" id="userId" />
+                    <input type="hidden" id="userId" value="0" />
                     <div class="mb-3">
-                        <label for="userName" class="form-label">User Name</label>
+                        <label for="userName" class="form-label">User Name *</label>
                         <input type="text" class="form-control" id="userName" required />
+                        <div class="invalid-feedback" id="userName-error"></div>
                     </div>
                     <div class="mb-3">
-                        <label for="userEmail" class="form-label">Email</label>
+                        <label for="userEmail" class="form-label">Email *</label>
                         <input type="email" class="form-control" id="userEmail" required />
+                        <div class="invalid-feedback" id="userEmail-error"></div>
                     </div>
                     <div class="mb-3">
-                        <label for="userRole" class="form-label">Role</label>
+                        <label for="userRole" class="form-label">Role *</label>
                         <select class="form-select" id="userRole" required>
+                            <option value="">-- Select Role --</option>
                             <option value="Admin">Admin</option>
                             <option value="Organizer">Organizer</option>
                             <option value="Customer">Customer</option>
                         </select>
+                        <div class="invalid-feedback" id="userRole-error"></div>
                     </div>
-                    <div class="mb-3">
-                        <label for="userStatus" class="form-label">Status</label>
-                        <select class="form-select" id="userStatus" required>
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
+                    <div class="mb-3" id="password-section">
+                        <label for="userPassword" class="form-label">Password <span id="password-required">*</span></label>
+                        <input type="password" class="form-control" id="userPassword" />
+                        <div class="invalid-feedback" id="userPassword-error"></div>
+                        <small class="form-text text-muted" id="password-help">
+                            <span id="password-help-add">Password must be at least 6 characters long.</span>
+                            <span id="password-help-edit" style="display:none;">Leave blank to keep current password. Must be at least 6 characters if changing.</span>
+                        </small>
                     </div>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                    <div class="mb-3" id="confirm-password-section">
+                        <label for="confirmPassword" class="form-label">Confirm Password <span id="confirm-password-required">*</span></label>
+                        <input type="password" class="form-control" id="confirmPassword" />
+                        <div class="invalid-feedback" id="confirmPassword-error"></div>
+                    </div>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">Save User</button>
             </div>
         </div>
     </div>
@@ -174,25 +242,195 @@
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script>
     function showSection(section) {
-        document.getElementById('section-users').style.display = section === 'users' ? '' : 'none';
-        document.getElementById('section-sales-report').style.display = section === 'sales-report' ? '' : 'none';
-        document.getElementById('section-users-report').style.display = section === 'users-report' ? '' : 'none';
-        document.getElementById('section-events-report').style.display = section === 'events-report' ? '' : 'none';
+        // Remove active class from all nav links
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        
+        // Hide all sections
+        document.getElementById('section-users').style.display = 'none';
+        document.getElementById('section-sales-report').style.display = 'none';
+        document.getElementById('section-users-report').style.display = 'none';
+        document.getElementById('section-events-report').style.display = 'none';
+        
+        // Show selected section and activate corresponding nav link
+        if (section === 'users') {
+            document.getElementById('section-users').style.display = 'block';
+            document.getElementById('menu-users').classList.add('active');
+        } else if (section === 'sales-report') {
+            document.getElementById('section-sales-report').style.display = 'block';
+            document.getElementById('menu-sales-report').classList.add('active');
+        } else if (section === 'users-report') {
+            document.getElementById('section-users-report').style.display = 'block';
+            document.getElementById('menu-users-report').classList.add('active');
+        } else if (section === 'events-report') {
+            document.getElementById('section-events-report').style.display = 'block';
+            document.getElementById('menu-events-report').classList.add('active');
+        }
     }
+    
     function openUserDialog(mode, userId = null) {
-        // Set up modal for add/edit
+        // Clear previous validation errors
+        clearValidationErrors();
+        
         if (mode === 'add') {
             document.getElementById('userModalLabel').innerText = 'Add User';
             document.getElementById('userForm').reset();
-            document.getElementById('userId').value = '';
-        } else {
+            document.getElementById('userId').value = '0';
+            
+            // Show password as required for new users
+            document.getElementById('password-required').style.display = 'inline';
+            document.getElementById('confirm-password-required').style.display = 'inline';
+            document.getElementById('userPassword').required = true;
+            document.getElementById('confirmPassword').required = true;
+            document.getElementById('password-help-add').style.display = 'inline';
+            document.getElementById('password-help-edit').style.display = 'none';
+            
+        } else if (mode === 'edit' && userId) {
             document.getElementById('userModalLabel').innerText = 'Edit User';
-            // Load user data for editing (AJAX or server-side)
+            document.getElementById('userId').value = userId;
+            
+            // Password is optional for editing
+            document.getElementById('password-required').style.display = 'none';
+            document.getElementById('confirm-password-required').style.display = 'none';
+            document.getElementById('userPassword').required = false;
+            document.getElementById('confirmPassword').required = false;
+            document.getElementById('password-help-add').style.display = 'none';
+            document.getElementById('password-help-edit').style.display = 'inline';
+            
+            // Load user data
+            loadUserData(userId);
         }
+        
         var userModal = new bootstrap.Modal(document.getElementById('userModal'));
         userModal.show();
     }
-    // TODO: Implement AJAX for loading users, editing, deleting, and saving
+    
+    function loadUserData(userId) {
+        fetch(`/Admin/GetUser/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('userName').value = data.userName;
+                document.getElementById('userEmail').value = data.email;
+                document.getElementById('userRole').value = data.role;
+                // Clear password fields for editing
+                document.getElementById('userPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            })
+            .catch(error => {
+                showAlert('Error loading user data: ' + error.message, 'danger');
+            });
+    }
+    
+    function saveUser() {
+        // Clear previous validation errors
+        clearValidationErrors();
+        
+        const formData = new FormData();
+        const userId = document.getElementById('userId').value;
+        const isEdit = userId !== '0';
+        
+        formData.append('UserId', userId);
+        formData.append('UserName', document.getElementById('userName').value);
+        formData.append('Email', document.getElementById('userEmail').value);
+        formData.append('Role', document.getElementById('userRole').value);
+        formData.append('Password', document.getElementById('userPassword').value);
+        formData.append('ConfirmPassword', document.getElementById('confirmPassword').value);
+        formData.append('IsEdit', isEdit);
+        
+        // Add anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (token) {
+            formData.append('__RequestVerificationToken', token);
+        }
+        
+        fetch('/Admin/SaveUser', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'RequestVerificationToken': token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                // Reload the page to refresh the user list
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error saving user: ' + error.message, 'danger');
+        });
+    }
+    
+    function deleteUser(userId) {
+        if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            fetch(`/Admin/DeleteUser/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    // Remove the row from table
+                    document.getElementById(`user-row-${userId}`).remove();
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('Error deleting user: ' + error.message, 'danger');
+            });
+        }
+    }
+    
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alertContainer');
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        alertContainer.innerHTML = alertHtml;
+        
+        // Auto-hide success messages after 3 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                const alert = alertContainer.querySelector('.alert');
+                if (alert) {
+                    bootstrap.Alert.getOrCreateInstance(alert).close();
+                }
+            }, 3000);
+        }
+    }
+    
+    function clearValidationErrors() {
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+    }
+    
+    // Add validation for password confirmation
+    document.getElementById('confirmPassword').addEventListener('input', function() {
+        const password = document.getElementById('userPassword').value;
+        const confirmPassword = this.value;
+        
+        if (password && confirmPassword && password !== confirmPassword) {
+            this.classList.add('is-invalid');
+            document.getElementById('confirmPassword-error').textContent = 'Passwords do not match.';
+        } else {
+            this.classList.remove('is-invalid');
+            document.getElementById('confirmPassword-error').textContent = '';
+        }
+    });
 </script>
+
+<!-- Anti-forgery token for AJAX requests -->
+@Html.AntiForgeryToken()
 </body>
 </html>
