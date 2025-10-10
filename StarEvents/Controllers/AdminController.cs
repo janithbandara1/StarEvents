@@ -23,6 +23,105 @@ namespace StarEvents.Controllers
             return View();
         }
 
+        // GET: Admin/GetDashboardStats - AJAX method to get dashboard statistics
+        [HttpGet]
+        public async Task<IActionResult> GetDashboardStats()
+        {
+            var totalUsers = await _context.Users.CountAsync();
+            var totalEvents = await _context.Events.CountAsync();
+            var activeEvents = await _context.Events.CountAsync(e => e.Status == "Active");
+            var totalTicketsSold = await _context.Tickets.CountAsync();
+            var totalRevenue = await _context.Tickets.SumAsync(t => t.PricePaid);
+
+            return Json(new { 
+                success = true, 
+                data = new {
+                    totalUsers,
+                    totalEvents,
+                    activeEvents,
+                    totalTicketsSold,
+                    totalRevenue
+                }
+            });
+        }
+
+        // GET: Admin/Profile
+        public async Task<IActionResult> Profile()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Users");
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Users");
+            }
+
+            var model = new EditUserViewModel
+            {
+                UserId = user.UserId,
+                UserName = user.UserName,
+                Email = user.Email,
+                Role = user.Role,
+                IsEdit = true
+            };
+
+            return View(model);
+        }
+
+        // POST: Admin/Profile
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Profile(EditUserViewModel model)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Users");
+            }
+
+            if (model.UserId != userId.Value)
+            {
+                return Forbid(); // Cannot edit other users' profiles
+            }
+
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Users.FindAsync(model.UserId);
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                // Check if email already exists for other users
+                if (await _context.Users.AnyAsync(u => u.Email == model.Email && u.UserId != model.UserId))
+                {
+                    ModelState.AddModelError("Email", "Email is already registered to another user.");
+                    return View(model);
+                }
+
+                user.UserName = model.UserName;
+                user.Email = model.Email;
+
+                // Update password if provided
+                if (!string.IsNullOrWhiteSpace(model.Password))
+                {
+                    user.PasswordHash = HashPassword(model.Password);
+                }
+
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Profile updated successfully.";
+                return RedirectToAction("Profile");
+            }
+
+            return View(model);
+        }
+
         // Users action for dedicated users page
         public IActionResult Users()
         {
@@ -167,6 +266,59 @@ namespace StarEvents.Controllers
             {
                 return Json(new { success = false, message = "An error occurred while deleting the user. Please try again." });
             }
+        }
+
+        // GET: Admin/GetSalesReport - AJAX method to get sales report data
+        [HttpGet]
+        public async Task<IActionResult> GetSalesReport()
+        {
+            var salesReport = await _context.Events
+                .Select(e => new
+                {
+                    EventTitle = e.Title,
+                    TicketsSold = e.Tickets.Count(),
+                    TotalSales = e.Tickets.Sum(t => t.PricePaid)
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = salesReport });
+        }
+
+        // GET: Admin/GetUsersReport - AJAX method to get users report data
+        [HttpGet]
+        public async Task<IActionResult> GetUsersReport()
+        {
+            var usersReport = await _context.Users
+                .Select(u => new
+                {
+                    UserName = u.UserName,
+                    Email = u.Email,
+                    Role = u.Role,
+                    EventsOrganized = u.Events.Count(),
+                    TicketsPurchased = u.Tickets.Count()
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = usersReport });
+        }
+
+        // GET: Admin/GetEventsReport - AJAX method to get events report data
+        [HttpGet]
+        public async Task<IActionResult> GetEventsReport()
+        {
+            var eventsReport = await _context.Events
+                .Include(e => e.Organizer)
+                .Select(e => new
+                {
+                    Title = e.Title,
+                    EventDate = e.EventDate.ToString("yyyy-MM-dd"),
+                    Location = e.Location,
+                    OrganizerName = e.Organizer.UserName,
+                    TicketsSold = e.Tickets.Count()
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = eventsReport });
         }
 
         // Helper method to hash password

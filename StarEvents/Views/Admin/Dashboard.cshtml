@@ -21,21 +21,32 @@
             <h4 class="mb-4">Admin</h4>
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a class="nav-link active" id="menu-users" href="#" onclick="showSection('users')">Manage Users</a>
+                    <a class="nav-link active" id="menu-dashboard" href="#" onclick="showSection('dashboard')">
+                        <i class="bi bi-house-door me-2"></i>Dashboard
+                    </a>
                 </li>
-                <li>
-                    <a class="nav-link" id="menu-reports" href="#" onclick="showSection('reports')">Reports</a>
-                    <ul class="nav flex-column ms-3">
-                        <li>
-                            <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">Sales Report</a>
-                        </li>
-                        <li>
-                            <a class="nav-link" id="menu-users-report" href="#" onclick="showSection('users-report')">Users Report</a>
-                        </li>
-                        <li>
-                            <a class="nav-link" id="menu-events-report" href="#" onclick="showSection('events-report')">Events Report</a>
-                        </li>
-                    </ul>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-users" href="#" onclick="showSection('users')">Manage Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-profile" href="@Url.Action("Profile", "Admin")">
+                        <i class="bi bi-person me-2"></i>My Profile
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">
+                        <i class="bi bi-graph-up me-2"></i>Sales Report
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-users-report" href="#" onclick="showSection('users-report')">
+                        <i class="bi bi-people me-2"></i>Users Report
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-events-report" href="#" onclick="showSection('events-report')">
+                        <i class="bi bi-calendar-event me-2"></i>Events Report
+                    </a>
                 </li>
             </ul>
         </div>
@@ -57,6 +68,19 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         }
+
+        <!-- Dashboard Section -->
+        <div id="section-dashboard">
+            <h3><i class="bi bi-house-door me-2"></i>Dashboard Overview</h3>
+            <div id="loading-dashboard" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div class="row" id="dashboard-stats">
+                <!-- Stats will be loaded here -->
+            </div>
+        </div>
 
         <!-- Manage Users Section -->
         <div id="section-users">
@@ -109,7 +133,12 @@
 
         <!-- Sales Report Section -->
         <div id="section-sales-report" style="display:none;">
-            <h3>Sales Report</h3>
+            <h3><i class="bi bi-graph-up me-2"></i>Sales Report</h3>
+            <div id="loading-sales-report" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -119,14 +148,19 @@
                     </tr>
                 </thead>
                 <tbody id="sales-report-table-body">
-                    <!-- Sales report data will be loaded here via JS or server-side rendering -->
+                    <!-- Sales report data will be loaded here -->
                 </tbody>
             </table>
         </div>
 
         <!-- Users Report Section -->
         <div id="section-users-report" style="display:none;">
-            <h3>Users Report</h3>
+            <h3><i class="bi bi-people me-2"></i>Users Report</h3>
+            <div id="loading-users-report" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -138,32 +172,19 @@
                     </tr>
                 </thead>
                 <tbody id="users-report-table-body">
-                    @if (ViewBag.Users != null)
-                    {
-                        @foreach (StarEvents.Models.User user in ViewBag.Users)
-                        {
-                            <tr>
-                                <td>@user.UserName</td>
-                                <td>@user.Email</td>
-                                <td>@user.Role</td>
-                                <td>@(user.Events?.Count ?? 0)</td>
-                                <td>@(user.Tickets?.Count ?? 0)</td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">No users found</td>
-                        </tr>
-                    }
+                    <!-- Users report data will be loaded here -->
                 </tbody>
             </table>
         </div>
 
         <!-- Events Report Section -->
         <div id="section-events-report" style="display:none;">
-            <h3>Events Report</h3>
+            <h3><i class="bi bi-calendar-event me-2"></i>Events Report</h3>
+            <div id="loading-events-report" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -175,7 +196,7 @@
                     </tr>
                 </thead>
                 <tbody id="events-report-table-body">
-                    <!-- Events report data will be loaded here via JS or server-side rendering -->
+                    <!-- Events report data will be loaded here -->
                 </tbody>
             </table>
         </div>
@@ -241,29 +262,41 @@
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script>
+    $(document).ready(function() {
+        loadDashboardStats();
+    });
+
     function showSection(section) {
         // Remove active class from all nav links
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         
         // Hide all sections
+        document.getElementById('section-dashboard').style.display = 'none';
         document.getElementById('section-users').style.display = 'none';
         document.getElementById('section-sales-report').style.display = 'none';
         document.getElementById('section-users-report').style.display = 'none';
         document.getElementById('section-events-report').style.display = 'none';
         
         // Show selected section and activate corresponding nav link
-        if (section === 'users') {
+        if (section === 'dashboard') {
+            document.getElementById('section-dashboard').style.display = 'block';
+            document.getElementById('menu-dashboard').classList.add('active');
+            loadDashboardStats();
+        } else if (section === 'users') {
             document.getElementById('section-users').style.display = 'block';
             document.getElementById('menu-users').classList.add('active');
         } else if (section === 'sales-report') {
             document.getElementById('section-sales-report').style.display = 'block';
             document.getElementById('menu-sales-report').classList.add('active');
+            loadSalesReport();
         } else if (section === 'users-report') {
             document.getElementById('section-users-report').style.display = 'block';
             document.getElementById('menu-users-report').classList.add('active');
+            loadUsersReport();
         } else if (section === 'events-report') {
             document.getElementById('section-events-report').style.display = 'block';
             document.getElementById('menu-events-report').classList.add('active');
+            loadEventsReport();
         }
     }
     
@@ -428,6 +461,199 @@
             document.getElementById('confirmPassword-error').textContent = '';
         }
     });
+
+    function loadDashboardStats() {
+        $('#loading-dashboard').show();
+        $.get('@Url.Action("GetDashboardStats", "Admin")')
+            .done(function(response) {
+                if (response.success) {
+                    displayDashboardStats(response.data);
+                } else {
+                    showAlert('Error', response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showAlert('Error', 'Failed to load dashboard stats. Please try again.', 'error');
+            })
+            .always(function() {
+                $('#loading-dashboard').hide();
+            });
+    }
+
+    function displayDashboardStats(data) {
+        const statsContainer = $('#dashboard-stats');
+        statsContainer.empty();
+
+        const statsHtml = `
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-people display-4 text-primary"></i>
+                        <h4 class="card-title">${data.totalUsers}</h4>
+                        <p class="card-text">Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-calendar-event display-4 text-success"></i>
+                        <h4 class="card-title">${data.totalEvents}</h4>
+                        <p class="card-text">Total Events</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-check-circle display-4 text-warning"></i>
+                        <h4 class="card-title">${data.activeEvents}</h4>
+                        <p class="card-text">Active Events</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-ticket-perforated display-4 text-info"></i>
+                        <h4 class="card-title">${data.totalTicketsSold}</h4>
+                        <p class="card-text">Tickets Sold</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-cash display-4 text-secondary"></i>
+                        <h4 class="card-title">$${parseFloat(data.totalRevenue).toFixed(2)}</h4>
+                        <p class="card-text">Total Revenue</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        statsContainer.html(statsHtml);
+    }
+
+    function loadSalesReport() {
+        $('#loading-sales-report').show();
+        $.get('@Url.Action("GetSalesReport", "Admin")')
+            .done(function(response) {
+                if (response.success) {
+                    displaySalesReport(response.data);
+                } else {
+                    showAlert('Error', response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showAlert('Error', 'Failed to load sales report. Please try again.', 'error');
+            })
+            .always(function() {
+                $('#loading-sales-report').hide();
+            });
+    }
+
+    function displaySalesReport(data) {
+        const tbody = $('#sales-report-table-body');
+        tbody.empty();
+        
+        if (data.length === 0) {
+            tbody.append('<tr><td colspan="3" class="text-center">No sales data available.</td></tr>');
+            return;
+        }
+        
+        data.forEach(function(item) {
+            const row = `
+                <tr>
+                    <td>${item.eventTitle}</td>
+                    <td>${item.ticketsSold}</td>
+                    <td>$${parseFloat(item.totalSales).toFixed(2)}</td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    function loadUsersReport() {
+        $('#loading-users-report').show();
+        $.get('@Url.Action("GetUsersReport", "Admin")')
+            .done(function(response) {
+                if (response.success) {
+                    displayUsersReport(response.data);
+                } else {
+                    showAlert('Error', response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showAlert('Error', 'Failed to load users report. Please try again.', 'error');
+            })
+            .always(function() {
+                $('#loading-users-report').hide();
+            });
+    }
+
+    function displayUsersReport(data) {
+        const tbody = $('#users-report-table-body');
+        tbody.empty();
+        
+        if (data.length === 0) {
+            tbody.append('<tr><td colspan="5" class="text-center">No users report data available.</td></tr>');
+            return;
+        }
+        
+        data.forEach(function(item) {
+            const row = `
+                <tr>
+                    <td>${item.userName}</td>
+                    <td>${item.email}</td>
+                    <td>${item.role}</td>
+                    <td>${item.eventsOrganized}</td>
+                    <td>${item.ticketsPurchased}</td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    function loadEventsReport() {
+        $('#loading-events-report').show();
+        $.get('@Url.Action("GetEventsReport", "Admin")')
+            .done(function(response) {
+                if (response.success) {
+                    displayEventsReport(response.data);
+                } else {
+                    showAlert('Error', response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showAlert('Error', 'Failed to load events report. Please try again.', 'error');
+            })
+            .always(function() {
+                $('#loading-events-report').hide();
+            });
+    }
+
+    function displayEventsReport(data) {
+        const tbody = $('#events-report-table-body');
+        tbody.empty();
+        
+        if (data.length === 0) {
+            tbody.append('<tr><td colspan="5" class="text-center">No events report data available.</td></tr>');
+            return;
+        }
+        
+        data.forEach(function(item) {
+            const row = `
+                <tr>
+                    <td>${item.title}</td>
+                    <td>${item.eventDate}</td>
+                    <td>${item.location}</td>
+                    <td>${item.organizerName}</td>
+                    <td>${item.ticketsSold}</td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
 </script>
 
 <!-- Anti-forgery token for AJAX requests -->
