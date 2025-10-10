@@ -306,19 +306,26 @@ namespace StarEvents.Controllers
         [HttpGet]
         public async Task<IActionResult> GetEventsReport()
         {
-            var eventsReport = await _context.Events
-                .Include(e => e.Organizer)
-                .Select(e => new
-                {
-                    Title = e.Title,
-                    EventDate = e.EventDate.ToString("yyyy-MM-dd"),
-                    Location = e.Location,
-                    OrganizerName = e.Organizer.UserName,
-                    TicketsSold = e.Tickets.Count()
-                })
-                .ToListAsync();
+            try
+            {
+                var eventsReport = await _context.Events
+                    .Include(e => e.Organizer)
+                    .Select(e => new
+                    {
+                        Title = e.Title ?? "Untitled",
+                        EventDate = e.EventDate.ToString("yyyy-MM-dd"),
+                        Location = e.Location ?? "Unknown",
+                        OrganizerName = e.Organizer != null ? e.Organizer.UserName : "Unknown",
+                        TicketsSold = e.Tickets.Count()
+                    })
+                    .ToListAsync();
 
-            return Json(new { success = true, data = eventsReport });
+                return Json(new { success = true, data = eventsReport });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while loading events report." });
+            }
         }
 
         // GET: Admin/GetDiscounts - AJAX method to get discounts for table
