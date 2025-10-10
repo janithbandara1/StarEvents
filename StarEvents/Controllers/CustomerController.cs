@@ -120,7 +120,7 @@ namespace StarEvents.Controllers
         
         // Create Stripe Checkout Session
         [HttpPost]
-        public async Task<IActionResult> CreateCheckoutSession(int eventId)
+        public async Task<IActionResult> CreateCheckoutSession(int eventId, string discountCode = null, bool useLoyaltyPoints = false)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
@@ -140,6 +140,47 @@ namespace StarEvents.Controllers
                 return Json(new { success = false, message = "Event not found or inactive." });
             }
             
+            decimal originalPrice = eventItem.TicketPrice;
+            decimal discountAmount = 0;
+            int loyaltyPointsUsed = 0;
+            
+            // Apply discount code if provided
+            if (!string.IsNullOrWhiteSpace(discountCode))
+            {
+                var discount = await _context.Discounts
+                    .FirstOrDefaultAsync(d => d.Code == discountCode && d.IsActive &&
+                                             (!d.ValidFrom.HasValue || d.ValidFrom <= DateTime.Now) &&
+                                             (!d.ValidTo.HasValue || d.ValidTo >= DateTime.Now));
+                
+                if (discount != null)
+                {
+                    discountAmount = originalPrice * discount.Percentage / 100;
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Invalid or expired discount code." });
+                }
+            }
+            
+            // Apply loyalty points if requested
+            if (useLoyaltyPoints)
+            {
+                var loyaltyPoint = await _context.LoyaltyPoints.FindAsync(userId);
+                int availablePoints = loyaltyPoint?.Points ?? 0;
+                
+                // Assume 1 point = $0.01
+                decimal maxLoyaltyDiscount = availablePoints * 0.01m;
+                decimal loyaltyDiscount = Math.Min(maxLoyaltyDiscount, originalPrice - discountAmount);
+                
+                if (loyaltyDiscount > 0)
+                {
+                    loyaltyPointsUsed = (int)(loyaltyDiscount * 100); // Convert back to points
+                    discountAmount += loyaltyDiscount;
+                }
+            }
+            
+            decimal finalPrice = Math.Max(0, originalPrice - discountAmount);
+            
             var options = new SessionCreateOptions
             {
                 PaymentMethodTypes = new List<string> { "card" },
@@ -149,7 +190,7 @@ namespace StarEvents.Controllers
                     {
                         PriceData = new SessionLineItemPriceDataOptions
                         {
-                            UnitAmount = (long)(eventItem.TicketPrice * 100), // Amount in cents
+                            UnitAmount = (long)(finalPrice * 100), // Amount in cents
                             Currency = "usd",
                             ProductData = new SessionLineItemPriceDataProductDataOptions
                             {
@@ -161,12 +202,18 @@ namespace StarEvents.Controllers
                     }
                 },
                 Mode = "payment",
-                SuccessUrl = Url.Action("PurchaseSuccess", "Customer", new { eventId = eventId }, Request.Scheme),
+                SuccessUrl = Url.Action("PurchaseSuccess", "Customer", new { 
+                    eventId = eventId, 
+                    discountCode = discountCode, 
+                    loyaltyPointsUsed = loyaltyPointsUsed 
+                }, Request.Scheme),
                 CancelUrl = Url.Action("Dashboard", "Customer", null, Request.Scheme),
                 Metadata = new Dictionary<string, string>
                 {
                     { "eventId", eventId.ToString() },
-                    { "userId", user.UserId.ToString() }
+                    { "userId", user.UserId.ToString() },
+                    { "discountCode", discountCode ?? "" },
+                    { "loyaltyPointsUsed", loyaltyPointsUsed.ToString() }
                 }
             };
             
@@ -178,7 +225,7 @@ namespace StarEvents.Controllers
         
         // Handle successful payment
         [HttpGet]
-        public async Task<IActionResult> PurchaseSuccess(int eventId)
+        public async Task<IActionResult> PurchaseSuccess(int eventId, string discountCode = null, int loyaltyPointsUsed = 0)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
@@ -210,7 +257,7 @@ namespace StarEvents.Controllers
                 EventId = eventId,
                 UserId = user.UserId,
                 PurchaseDate = DateTime.Now,
-                PricePaid = eventItem.TicketPrice,
+                PricePaid = eventItem.TicketPrice, // Store original price, or calculate actual paid?
                 Status = "Purchased",
                 QRCode = qrCodeBase64
             };
@@ -222,7 +269,7 @@ namespace StarEvents.Controllers
             var payment = new Payment
             {
                 TicketId = ticket.TicketId,
-                Amount = eventItem.TicketPrice,
+                Amount = eventItem.TicketPrice, // Actual amount paid after discount
                 PaymentDate = DateTime.Now,
                 PaymentMethod = "Stripe",
                 Status = "Completed"
@@ -231,7 +278,41 @@ namespace StarEvents.Controllers
             _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
             
-            TempData["Message"] = "Ticket purchased successfully! Your QR code has been generated.";
+            // Deduct loyalty points if used
+            if (loyaltyPointsUsed > 0)
+            {
+                var loyaltyPoint = await _context.LoyaltyPoints.FindAsync(userId);
+                if (loyaltyPoint != null)
+                {
+                    loyaltyPoint.Points -= loyaltyPointsUsed;
+                    loyaltyPoint.LastUpdated = DateTime.Now;
+                    _context.Update(loyaltyPoint);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            
+            // Award loyalty points (1 point per $1 spent)
+            int pointsEarned = (int)eventItem.TicketPrice; // Or actual paid amount?
+            var existingLoyaltyPoint = await _context.LoyaltyPoints.FindAsync(userId);
+            if (existingLoyaltyPoint == null)
+            {
+                existingLoyaltyPoint = new LoyaltyPoint
+                {
+                    UserId = user.UserId,
+                    Points = pointsEarned,
+                    LastUpdated = DateTime.Now
+                };
+                _context.LoyaltyPoints.Add(existingLoyaltyPoint);
+            }
+            else
+            {
+                existingLoyaltyPoint.Points += pointsEarned;
+                existingLoyaltyPoint.LastUpdated = DateTime.Now;
+                _context.Update(existingLoyaltyPoint);
+            }
+            await _context.SaveChangesAsync();
+            
+            TempData["Message"] = $"Ticket purchased successfully! You earned {pointsEarned} loyalty points. Your QR code has been generated.";
             return RedirectToAction("MyTickets");
         }
         
@@ -357,6 +438,22 @@ namespace StarEvents.Controllers
                 email = user.Email,
                 role = user.Role
             });
+        }
+
+        // GET: Customer/GetLoyaltyPoints - AJAX method to get loyalty points
+        [HttpGet]
+        public async Task<IActionResult> GetLoyaltyPoints()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Unauthorized." });
+            }
+
+            var loyaltyPoint = await _context.LoyaltyPoints.FindAsync(userId);
+            int points = loyaltyPoint?.Points ?? 0;
+
+            return Json(new { success = true, points = points });
         }
 
         // Helper method to hash password

@@ -321,6 +321,145 @@ namespace StarEvents.Controllers
             return Json(new { success = true, data = eventsReport });
         }
 
+        // GET: Admin/GetDiscounts - AJAX method to get discounts for table
+        [HttpGet]
+        public async Task<IActionResult> GetDiscounts()
+        {
+            var discounts = await _context.Discounts
+                .OrderBy(d => d.Code)
+                .Select(d => new
+                {
+                    d.DiscountId,
+                    d.Code,
+                    d.Description,
+                    d.Percentage,
+                    ValidFrom = d.ValidFrom.HasValue ? d.ValidFrom.Value.ToString("yyyy-MM-dd") : null,
+                    ValidTo = d.ValidTo.HasValue ? d.ValidTo.Value.ToString("yyyy-MM-dd") : null,
+                    d.IsActive
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = discounts });
+        }
+
+        // POST: Admin/SaveDiscount - AJAX method to save discount
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveDiscount(int discountId, string code, string description, int percentage, string validFrom, string validTo, bool isActive)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return Json(new { success = false, message = "Discount code is required." });
+            }
+
+            if (percentage < 1 || percentage > 100)
+            {
+                return Json(new { success = false, message = "Percentage must be between 1 and 100." });
+            }
+
+            DateTime? validFromDate = string.IsNullOrWhiteSpace(validFrom) ? null : DateTime.Parse(validFrom);
+            DateTime? validToDate = string.IsNullOrWhiteSpace(validTo) ? null : DateTime.Parse(validTo);
+
+            try
+            {
+                if (discountId == 0) // Add new
+                {
+                    if (await _context.Discounts.AnyAsync(d => d.Code == code))
+                    {
+                        return Json(new { success = false, message = "Discount code already exists." });
+                    }
+
+                    var discount = new Discount
+                    {
+                        Code = code,
+                        Description = description,
+                        Percentage = percentage,
+                        ValidFrom = validFromDate,
+                        ValidTo = validToDate,
+                        IsActive = isActive
+                    };
+
+                    _context.Discounts.Add(discount);
+                    await _context.SaveChangesAsync();
+
+                    return Json(new { success = true, message = "Discount created successfully." });
+                }
+                else // Edit existing
+                {
+                    var discount = await _context.Discounts.FindAsync(discountId);
+                    if (discount == null)
+                    {
+                        return Json(new { success = false, message = "Discount not found." });
+                    }
+
+                    if (await _context.Discounts.AnyAsync(d => d.Code == code && d.DiscountId != discountId))
+                    {
+                        return Json(new { success = false, message = "Discount code already exists." });
+                    }
+
+                    discount.Code = code;
+                    discount.Description = description;
+                    discount.Percentage = percentage;
+                    discount.ValidFrom = validFromDate;
+                    discount.ValidTo = validToDate;
+                    discount.IsActive = isActive;
+
+                    _context.Update(discount);
+                    await _context.SaveChangesAsync();
+
+                    return Json(new { success = true, message = "Discount updated successfully." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while saving the discount." });
+            }
+        }
+
+        // POST: Admin/DeleteDiscount - AJAX method to delete discount
+        [HttpPost]
+        public async Task<IActionResult> DeleteDiscount(int id)
+        {
+            try
+            {
+                var discount = await _context.Discounts.FindAsync(id);
+                if (discount == null)
+                {
+                    return Json(new { success = false, message = "Discount not found." });
+                }
+
+                _context.Discounts.Remove(discount);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Discount deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while deleting the discount." });
+            }
+        }
+
+        // GET: Admin/GetDiscount/5 - AJAX method to get discount details
+        [HttpGet]
+        public async Task<IActionResult> GetDiscount(int id)
+        {
+            var discount = await _context.Discounts.FindAsync(id);
+            if (discount == null)
+            {
+                return NotFound();
+            }
+
+            return Json(new {
+                discountId = discount.DiscountId,
+                code = discount.Code,
+                description = discount.Description,
+                percentage = discount.Percentage,
+                validFrom = discount.ValidFrom?.ToString("yyyy-MM-dd"),
+                validTo = discount.ValidTo?.ToString("yyyy-MM-dd"),
+                isActive = discount.IsActive
+            });
+        }
+
         // Helper method to hash password
         private string HashPassword(string password)
         {

@@ -29,6 +29,11 @@
                     <a class="nav-link" id="menu-users" href="#" onclick="showSection('users')">Manage Users</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" id="menu-discounts" href="#" onclick="showSection('discounts')">
+                        <i class="bi bi-percent me-2"></i>Manage Discounts
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" id="menu-profile" href="@Url.Action("Profile", "Admin")">
                         <i class="bi bi-person me-2"></i>My Profile
                     </a>
@@ -200,6 +205,30 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Manage Discounts Section -->
+        <div id="section-discounts" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Manage Discounts</h3>
+                <button class="btn btn-primary" onclick="openDiscountDialog('add')">Add Discount</button>
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Percentage</th>
+                        <th>Valid From</th>
+                        <th>Valid To</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="discounts-table-body">
+                    <!-- Discounts will be loaded here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -258,12 +287,60 @@
     </div>
 </div>
 
+<!-- Discount Modal -->
+<div class="modal fade" id="discountModal" tabindex="-1" aria-labelledby="discountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="discountModalLabel">Add Discount</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="discountForm">
+                    <input type="hidden" id="discountId" value="0" />
+                    <div class="mb-3">
+                        <label for="discountCode" class="form-label">Discount Code *</label>
+                        <input type="text" class="form-control" id="discountCode" required />
+                        <div class="invalid-feedback" id="discountCode-error"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="discountDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="discountDescription" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="discountPercentage" class="form-label">Percentage *</label>
+                        <input type="number" class="form-control" id="discountPercentage" min="1" max="100" required />
+                        <div class="invalid-feedback" id="discountPercentage-error"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="discountValidFrom" class="form-label">Valid From</label>
+                        <input type="date" class="form-control" id="discountValidFrom" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="discountValidTo" class="form-label">Valid To</label>
+                        <input type="date" class="form-control" id="discountValidTo" />
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="discountIsActive" checked />
+                        <label class="form-check-label" for="discountIsActive">Is Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDiscount()">Save Discount</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script>
     $(document).ready(function() {
         loadDashboardStats();
+        loadDiscounts();
     });
 
     function showSection(section) {
@@ -276,6 +353,7 @@
         document.getElementById('section-sales-report').style.display = 'none';
         document.getElementById('section-users-report').style.display = 'none';
         document.getElementById('section-events-report').style.display = 'none';
+        document.getElementById('section-discounts').style.display = 'none';
         
         // Show selected section and activate corresponding nav link
         if (section === 'dashboard') {
@@ -285,6 +363,10 @@
         } else if (section === 'users') {
             document.getElementById('section-users').style.display = 'block';
             document.getElementById('menu-users').classList.add('active');
+        } else if (section === 'discounts') {
+            document.getElementById('section-discounts').style.display = 'block';
+            document.getElementById('menu-discounts').classList.add('active');
+            loadDiscounts();
         } else if (section === 'sales-report') {
             document.getElementById('section-sales-report').style.display = 'block';
             document.getElementById('menu-sales-report').classList.add('active');
@@ -386,7 +468,7 @@
         .then(data => {
             if (data.success) {
                 showAlert(data.message, 'success');
-                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                $('#userModal').modal('hide');
                 // Reload the page to refresh the user list
                 setTimeout(() => window.location.reload(), 1000);
             } else {
@@ -614,45 +696,155 @@
         });
     }
 
-    function loadEventsReport() {
-        $('#loading-events-report').show();
-        $.get('@Url.Action("GetEventsReport", "Admin")')
+    function loadDiscounts() {
+        $.get('@Url.Action("GetDiscounts", "Admin")')
             .done(function(response) {
                 if (response.success) {
-                    displayEventsReport(response.data);
+                    displayDiscounts(response.data);
                 } else {
                     showAlert('Error', response.message, 'error');
                 }
             })
             .fail(function() {
-                showAlert('Error', 'Failed to load events report. Please try again.', 'error');
-            })
-            .always(function() {
-                $('#loading-events-report').hide();
+                showAlert('Error', 'Failed to load discounts.', 'error');
             });
     }
 
-    function displayEventsReport(data) {
-        const tbody = $('#events-report-table-body');
+    function displayDiscounts(discounts) {
+        const tbody = $('#discounts-table-body');
         tbody.empty();
         
-        if (data.length === 0) {
-            tbody.append('<tr><td colspan="5" class="text-center">No events report data available.</td></tr>');
+        if (discounts.length === 0) {
+            tbody.append('<tr><td colspan="7" class="text-center">No discounts found</td></tr>');
             return;
         }
         
-        data.forEach(function(item) {
+        discounts.forEach(function(discount) {
             const row = `
-                <tr>
-                    <td>${item.title}</td>
-                    <td>${item.eventDate}</td>
-                    <td>${item.location}</td>
-                    <td>${item.organizerName}</td>
-                    <td>${item.ticketsSold}</td>
+                <tr id="discount-row-${discount.discountId}">
+                    <td>${discount.code}</td>
+                    <td>${discount.description || ''}</td>
+                    <td>${discount.percentage}%</td>
+                    <td>${discount.validFrom || ''}</td>
+                    <td>${discount.validTo || ''}</td>
+                    <td><span class="badge bg-${discount.isActive ? 'success' : 'secondary'}">${discount.isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="openDiscountDialog('edit', ${discount.discountId})">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDiscount(${discount.discountId})">Delete</button>
+                        </div>
+                    </td>
                 </tr>
             `;
             tbody.append(row);
         });
+    }
+
+    function openDiscountDialog(mode, discountId = null) {
+        clearValidationErrors();
+        
+        if (mode === 'add') {
+            document.getElementById('discountModalLabel').innerText = 'Add Discount';
+            document.getElementById('discountForm').reset();
+            document.getElementById('discountId').value = '0';
+            document.getElementById('discountIsActive').checked = true;
+        } else if (mode === 'edit' && discountId) {
+            document.getElementById('discountModalLabel').innerText = 'Edit Discount';
+            document.getElementById('discountId').value = discountId;
+            loadDiscountData(discountId);
+        }
+        
+        var discountModal = new bootstrap.Modal(document.getElementById('discountModal'));
+        discountModal.show();
+    }
+    
+    function loadDiscountData(discountId) {
+        // For simplicity, since we have the data in displayDiscounts, we can fetch again or store it.
+        // For now, fetch from server
+        fetch(`/Admin/GetDiscount/${discountId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('discountCode').value = data.code;
+                document.getElementById('discountDescription').value = data.description || '';
+                document.getElementById('discountPercentage').value = data.percentage;
+                document.getElementById('discountValidFrom').value = data.validFrom || '';
+                document.getElementById('discountValidTo').value = data.validTo || '';
+                document.getElementById('discountIsActive').checked = data.isActive;
+            })
+            .catch(error => {
+                showAlert('Error loading discount data: ' + error.message, 'danger');
+            });
+    }
+    
+    function saveDiscount() {
+        // Clear previous validation errors
+        clearValidationErrors();
+        
+        const discountId = document.getElementById('discountId').value;
+        const code = document.getElementById('discountCode').value;
+        const description = document.getElementById('discountDescription').value;
+        const percentage = parseInt(document.getElementById('discountPercentage').value);
+        const validFrom = document.getElementById('discountValidFrom').value || null;
+        const validTo = document.getElementById('discountValidTo').value || null;
+        const isActive = document.getElementById('discountIsActive').checked;
+        
+        const formData = new FormData();
+        formData.append('discountId', discountId);
+        formData.append('code', code);
+        formData.append('description', description);
+        formData.append('percentage', percentage);
+        if (validFrom) formData.append('validFrom', validFrom);
+        if (validTo) formData.append('validTo', validTo);
+        formData.append('isActive', isActive);
+        
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (token) {
+            formData.append('__RequestVerificationToken', token);
+        }
+        
+        fetch('@Url.Action("SaveDiscount", "Admin")', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'RequestVerificationToken': token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                $('#discountModal').modal('hide');
+                loadDiscounts();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error saving discount: ' + error.message, 'danger');
+        });
+    }
+    
+    function deleteDiscount(discountId) {
+        if (confirm('Are you sure you want to delete this discount?')) {
+            fetch(`/Admin/DeleteDiscount/${discountId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    document.getElementById(`discount-row-${discountId}`).remove();
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('Error deleting discount: ' + error.message, 'danger');
+            });
+        }
     }
 </script>
 
