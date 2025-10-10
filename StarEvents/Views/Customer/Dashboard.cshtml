@@ -102,8 +102,7 @@
                             <i class="bi bi-person-circle me-1"></i>Account
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="openProfileModal()"><i class="bi bi-person me-2"></i>Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="@Url.Action("Logout", "Users")">
                                 <i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
@@ -275,6 +274,53 @@
         </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profileForm">
+                        <input type="hidden" id="profileUserId" value="0" />
+                        <div class="mb-3">
+                            <label for="profileUserName" class="form-label">User Name *</label>
+                            <input type="text" class="form-control" id="profileUserName" required />
+                            <div class="invalid-feedback" id="profileUserName-error"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileEmail" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="profileEmail" required />
+                            <div class="invalid-feedback" id="profileEmail-error"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <input type="text" class="form-control" id="profileRole" readonly />
+                            <small class="form-text text-muted">Role cannot be changed.</small>
+                        </div>
+                        <div class="mb-3" id="profile-password-section">
+                            <label for="profilePassword" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="profilePassword" />
+                            <div class="invalid-feedback" id="profilePassword-error"></div>
+                            <small class="form-text text-muted">Leave blank to keep current password. Must be at least 6 characters if changing.</small>
+                        </div>
+                        <div class="mb-3" id="profile-confirm-password-section">
+                            <label for="profileConfirmPassword" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="profileConfirmPassword" />
+                            <div class="invalid-feedback" id="profileConfirmPassword-error"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -427,45 +473,6 @@
                 });
         }
 
-        function clearFilters() {
-            $('#searchText').val('');
-            $('#categoryFilter').val('');
-            $('#dateFilter').val('');
-            $('#locationFilter').val('');
-            searchEvents();
-        }
-
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = function() {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        function showAlert(title, message, type) {
-            let alertClass = 'alert-info';
-            if (type === 'error') alertClass = 'alert-danger';
-            if (type === 'success') alertClass = 'alert-success';
-            
-            const alertHtml = `
-                <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
-                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
-                    <strong>${title}:</strong> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-            $('body').append(alertHtml);
-            
-            setTimeout(function() {
-                $('.alert').fadeOut();
-            }, 5000);
-        }
-
         $('#buyTicketBtn').on('click', function() {
             if (currentEventId) {
                 $.post('@Url.Action("CreateCheckoutSession", "Customer")', { eventId: currentEventId })
@@ -481,6 +488,93 @@
                     });
             }
         });
+
+        function openProfileModal() {
+            // Clear previous validation errors
+            clearValidationErrors();
+            
+            // Load user data
+            loadProfileData();
+            
+            var profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            profileModal.show();
+        }
+        
+        function loadProfileData() {
+            fetch('@Url.Action("GetProfile", "Customer")')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('profileUserId').value = data.userId;
+                    document.getElementById('profileUserName').value = data.userName;
+                    document.getElementById('profileEmail').value = data.email;
+                    document.getElementById('profileRole').value = data.role;
+                    // Clear password fields
+                    document.getElementById('profilePassword').value = '';
+                    document.getElementById('profileConfirmPassword').value = '';
+                })
+                .catch(error => {
+                    showAlert('Error loading profile data: ' + error.message, 'danger');
+                });
+        }
+        
+        function saveProfile() {
+            // Clear previous validation errors
+            clearValidationErrors();
+            
+            const formData = new FormData();
+            formData.append('UserId', document.getElementById('profileUserId').value);
+            formData.append('UserName', document.getElementById('profileUserName').value);
+            formData.append('Email', document.getElementById('profileEmail').value);
+            formData.append('Role', document.getElementById('profileRole').value);
+            formData.append('Password', document.getElementById('profilePassword').value);
+            formData.append('ConfirmPassword', document.getElementById('profileConfirmPassword').value);
+            formData.append('IsEdit', true);
+            
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) {
+                formData.append('__RequestVerificationToken', token);
+            }
+            
+            fetch('@Url.Action("Profile", "Customer")', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('Error saving profile: ' + error.message, 'danger');
+            });
+        }
+        
+        function clearValidationErrors() {
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+        }
+        
+        // Add validation for password confirmation
+        document.getElementById('profileConfirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('profilePassword').value;
+            const confirmPassword = this.value;
+            
+            if (password && confirmPassword && password !== confirmPassword) {
+                this.classList.add('is-invalid');
+                document.getElementById('profileConfirmPassword-error').textContent = 'Passwords do not match.';
+            } else {
+                this.classList.remove('is-invalid');
+                document.getElementById('profileConfirmPassword-error').textContent = '';
+            }
+        });
     </script>
 </body>
-</html>
+</html></html>

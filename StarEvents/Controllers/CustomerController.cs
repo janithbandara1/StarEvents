@@ -4,6 +4,8 @@ using StarEvents.Models;
 using Stripe.Checkout;
 using QRCoder;
 using System.Drawing.Imaging;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace StarEvents.Controllers
 {
@@ -256,7 +258,117 @@ namespace StarEvents.Controllers
             
             return View(tickets);
         }
-        
+
+        // GET: Customer/Profile
+        public async Task<IActionResult> Profile()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Users");
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Users");
+            }
+
+            var model = new EditUserViewModel
+            {
+                UserId = user.UserId,
+                UserName = user.UserName,
+                Email = user.Email,
+                Role = user.Role,
+                IsEdit = true
+            };
+
+            return View(model);
+        }
+
+        // POST: Customer/Profile
+        [HttpPost]
+        public async Task<IActionResult> Profile(EditUserViewModel model)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Unauthorized." });
+            }
+
+            if (model.UserId != userId.Value)
+            {
+                return Json(new { success = false, message = "Cannot edit other users' profiles." });
+            }
+
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Users.FindAsync(model.UserId);
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "User not found." });
+                }
+
+                // Check if email already exists for other users
+                if (await _context.Users.AnyAsync(u => u.Email == model.Email && u.UserId != model.UserId))
+                {
+                    return Json(new { success = false, message = "Email is already registered to another user." });
+                }
+
+                user.UserName = model.UserName;
+                user.Email = model.Email;
+
+                // Update password if provided
+                if (!string.IsNullOrWhiteSpace(model.Password))
+                {
+                    user.PasswordHash = HashPassword(model.Password);
+                }
+
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Profile updated successfully." });
+            }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+            return Json(new { success = false, message = string.Join(", ", errors) });
+        }
+
+        // GET: Customer/GetProfile - AJAX method to get profile data
+        [HttpGet]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Unauthorized." });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "User not found." });
+            }
+
+            return Json(new { 
+                success = true, 
+                userId = user.UserId,
+                userName = user.UserName,
+                email = user.Email,
+                role = user.Role
+            });
+        }
+
+        // Helper method to hash password
+        private string HashPassword(string password)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return Convert.ToBase64String(hashedBytes);
+            }
+        }
+
         // Generate QR Code as Base64 string
         private string GenerateQRCode(int userId, int eventId)
         {
