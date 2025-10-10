@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "My Profile";
     Layout = null;
+    ViewData["ActiveNav"] = "MyProfile";
 }
 
 <!DOCTYPE html>
@@ -14,52 +15,15 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StarEvents.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+    </style>
 </head>
 <body>
-    <!-- Top Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-star-fill me-2"></i>StarEvents
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="@Url.Action("Dashboard", "Customer")">
-                            <i class="bi bi-house-door me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="@Url.Action("MyTickets", "Customer")">
-                            <i class="bi bi-ticket-perforated me-1"></i>My Tickets
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="@Url.Action("Profile", "Customer")">
-                            <i class="bi bi-person me-1"></i>My Profile
-                        </a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1"></i>Account
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="@Url.Action("Profile", "Customer")"><i class="bi bi-person me-2"></i>Profile</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="@Url.Action("Logout", "Users")">
-                                <i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    @await Html.PartialAsync("_CustomerNavbar")
 
     <!-- Main Content -->
     <div class="container mt-4">
@@ -131,8 +95,348 @@
         </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profileForm">
+                        <input type="hidden" id="profileUserId" value="0" />
+                        <div class="mb-3">
+                            <label for="profileUserName" class="form-label">User Name *</label>
+                            <input type="text" class="form-control" id="profileUserName" required />
+                            <div class="invalid-feedback" id="profileUserName-error"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileEmail" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="profileEmail" required />
+                            <div class="invalid-feedback" id="profileEmail-error"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <input type="text" class="form-control" id="profileRole" readonly />
+                            <small class="form-text text-muted">Role cannot be changed.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Loyalty Points</label>
+                            <input type="text" class="form-control" id="profileLoyaltyPoints" readonly />
+                            <small class="form-text text-muted">Points earned from purchases.</small>
+                        </div>
+                        <div class="mb-3" id="profile-password-section">
+                            <label for="profilePassword" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="profilePassword" />
+                            <div class="invalid-feedback" id="profilePassword-error"></div>
+                            <small class="form-text text-muted">Leave blank to keep current password. Must be at least 6 characters if changing.</small>
+                        </div>
+                        <div class="mb-3" id="profile-confirm-password-section">
+                            <label for="profileConfirmPassword" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="profileConfirmPassword" />
+                            <div class="invalid-feedback" id="profileConfirmPassword-error"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        let currentEventId = null;
+
+        $(document).ready(function() {
+            // Form submission handler
+            $('#searchForm').on('submit', function(e) {
+                e.preventDefault();
+                searchEvents();
+            });
+
+            // Real-time search on input change
+            $('#searchText, #locationFilter').on('input', debounce(searchEvents, 500));
+            $('#categoryFilter, #dateFilter').on('change', searchEvents);
+        });
+
+        function searchEvents() {
+            $('#loadingIndicator').show();
+            
+            const searchData = {
+                search: $('#searchText').val(),
+                category: $('#categoryFilter').val(),
+                date: $('#dateFilter').val(),
+                location: $('#locationFilter').val()
+            };
+
+            $.get('@Url.Action("SearchEvents", "Customer")', searchData)
+                .done(function(response) {
+                    if (response.success) {
+                        displayEvents(response.data);
+                        updateEventsCount(response.data.length);
+                    } else {
+                        showAlert('Error', response.message, 'error');
+                    }
+                })
+                .fail(function() {
+                    showAlert('Error', 'Failed to search events. Please try again.', 'error');
+                })
+                .always(function() {
+                    $('#loadingIndicator').hide();
+                });
+        }
+
+        function displayEvents(events) {
+            const container = $('#eventsContainer');
+            container.empty();
+
+            if (events.length === 0) {
+                container.html(`
+                    <div class="col-12">
+                        <div class="no-events">
+                            <i class="bi bi-search display-1 text-muted mb-3"></i>
+                            <h4>No Events Found</h4>
+                            <p class="mb-0">Try adjusting your search criteria.</p>
+                        </div>
+                    </div>
+                `);
+                return;
+            }
+
+            events.forEach(function(event) {
+                const eventCard = `
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card event-card h-100 border-0 shadow-sm">
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <span class="event-date">
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        ${event.eventDate}
+                                    </span>
+                                    ${event.category ? `<span class="category-badge">${event.category}</span>` : ''}
+                                </div>
+                                
+                                <h5 class="card-title mb-3">${event.title}</h5>
+                                
+                                <div class="event-description text-muted mb-3">
+                                    ${event.description || 'No description available.'}
+                                </div>
+                                
+                                <div class="mt-auto">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-geo-alt text-muted me-2"></i>
+                                        <small class="text-muted">${event.location}</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-3">
+                                        <i class="bi bi-clock text-muted me-2"></i>
+                                        <small class="text-muted">${event.eventTime}</small>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="event-price">$${parseFloat(event.ticketPrice).toFixed(2)}</span>
+                                        <button class="btn btn-primary btn-sm" onclick="showEventDetails(${event.eventId})">
+                                            <i class="bi bi-eye me-1"></i>View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(eventCard);
+            });
+        }
+
+        function updateEventsCount(count) {
+            $('#eventsCount').text(count + ' events found');
+        }
+
+        function showEventDetails(eventId) {
+            currentEventId = eventId;
+            
+            $.get('@Url.Action("GetEventDetails", "Customer")', { id: eventId })
+                .done(function(response) {
+                    if (response.success) {
+                        const event = response.data;
+                        const content = `
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4>${event.title}</h4>
+                                    ${event.category ? `<span class="badge bg-secondary mb-3">${event.category}</span>` : ''}
+                                    <p class="text-muted">${event.description || 'No description available.'}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-success">$${parseFloat(event.ticketPrice).toFixed(2)}</h5>
+                                            <hr>
+                                            <p class="card-text">
+                                                <i class="bi bi-calendar-check me-2"></i><strong>Date:</strong> ${event.eventDate}<br>
+                                                <i class="bi bi-clock me-2"></i><strong>Time:</strong> ${event.eventTime}<br>
+                                                <i class="bi bi-geo-alt me-2"></i><strong>Location:</strong> ${event.location}<br>
+                                                <i class="bi bi-person me-2"></i><strong>Organizer:</strong> ${event.organizerName}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        $('#eventDetailsContent').html(content);
+                        $('#eventDetailsModal').modal('show');
+                        
+                        // Load loyalty points
+                        loadLoyaltyPoints();
+                    } else {
+                        showAlert('Error', response.message, 'error');
+                    }
+                })
+                .fail(function() {
+                    showAlert('Error', 'Failed to load event details.', 'error');
+                });
+        }
+
+        $('#buyTicketBtn').on('click', function() {
+            if (currentEventId) {
+                const discountCode = $('#discountCode').val();
+                const useLoyaltyPoints = $('#useLoyaltyPoints').is(':checked');
+                
+                $.post('@Url.Action("CreateCheckoutSession", "Customer")', { 
+                    eventId: currentEventId,
+                    discountCode: discountCode,
+                    useLoyaltyPoints: useLoyaltyPoints
+                })
+                    .done(function(response) {
+                        if (response.success) {
+                            window.location.href = response.url;
+                        } else {
+                            showAlert('Error', response.message, 'error');
+                        }
+                    })
+                    .fail(function() {
+                        showAlert('Error', 'Failed to initiate payment.', 'error');
+                    });
+            }
+        });
+
+        function loadLoyaltyPoints() {
+            $.get('@Url.Action("GetLoyaltyPoints", "Customer")')
+                .done(function(response) {
+                    if (response.success) {
+                        $('#availablePoints').text(response.points);
+                    }
+                })
+                .fail(function() {
+                    $('#availablePoints').text('0');
+                });
+        }
+
+        function openProfileModal() {
+            // Clear previous validation errors
+            clearValidationErrors();
+            
+            // Load user data
+            loadProfileData();
+            
+            var profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            profileModal.show();
+        }
+        
+        function loadProfileData() {
+            fetch('@Url.Action("GetProfile", "Customer")')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('profileUserId').value = data.userId;
+                    document.getElementById('profileUserName').value = data.userName;
+                    document.getElementById('profileEmail').value = data.email;
+                    document.getElementById('profileRole').value = data.role;
+                    // Clear password fields
+                    document.getElementById('profilePassword').value = '';
+                    document.getElementById('profileConfirmPassword').value = '';
+                    
+                    // Load loyalty points
+                    loadLoyaltyPointsForProfile();
+                })
+                .catch(error => {
+                    showAlert('Error loading profile data: ' + error.message, 'danger');
+                });
+        }
+        
+        function loadLoyaltyPointsForProfile() {
+            $.get('@Url.Action("GetLoyaltyPoints", "Customer")')
+                .done(function(response) {
+                    if (response.success) {
+                        document.getElementById('profileLoyaltyPoints').value = response.points;
+                    }
+                })
+                .fail(function() {
+                    document.getElementById('profileLoyaltyPoints').value = '0';
+                });
+        }
+        
+        function saveProfile() {
+            // Clear previous validation errors
+            clearValidationErrors();
+            
+            const formData = new FormData();
+            formData.append('UserId', document.getElementById('profileUserId').value);
+            formData.append('UserName', document.getElementById('profileUserName').value);
+            formData.append('Email', document.getElementById('profileEmail').value);
+            formData.append('Role', document.getElementById('profileRole').value);
+            formData.append('Password', document.getElementById('profilePassword').value);
+            formData.append('ConfirmPassword', document.getElementById('profileConfirmPassword').value);
+            formData.append('IsEdit', true);
+            
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) {
+                formData.append('__RequestVerificationToken', token);
+            }
+            
+            fetch('@Url.Action("Profile", "Customer")', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    $('#profileModal').modal('hide');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('Error saving profile: ' + error.message, 'danger');
+            });
+        }
+        
+        function clearValidationErrors() {
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+        }
+        
+        // Add validation for password confirmation
+        document.getElementById('profileConfirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('profilePassword').value;
+            const confirmPassword = this.value;
+            
+            if (password && confirmPassword && password !== confirmPassword) {
+                this.classList.add('is-invalid');
+                document.getElementById('profileConfirmPassword-error').textContent = 'Passwords do not match.';
+            } else {
+                this.classList.remove('is-invalid');
+                document.getElementById('profileConfirmPassword-error').textContent = '';
+            }
+        });
+    </script>
 </body>
 </html>
