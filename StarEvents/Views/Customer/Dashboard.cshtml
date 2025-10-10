@@ -91,7 +91,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showMyTickets()">
+                        <a class="nav-link" href="@Url.Action("MyTickets", "Customer")">
                             <i class="bi bi-ticket-perforated me-1"></i>My Tickets
                         </a>
                     </li>
@@ -435,10 +435,6 @@
             searchEvents();
         }
 
-        function showMyTickets() {
-            showAlert('Info', 'My Tickets feature coming soon!', 'info');
-        }
-
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -472,7 +468,17 @@
 
         $('#buyTicketBtn').on('click', function() {
             if (currentEventId) {
-                showAlert('Info', 'Ticket purchasing feature coming soon!', 'info');
+                $.post('@Url.Action("CreateCheckoutSession", "Customer")', { eventId: currentEventId })
+                    .done(function(response) {
+                        if (response.success) {
+                            window.location.href = response.url;
+                        } else {
+                            showAlert('Error', response.message, 'error');
+                        }
+                    })
+                    .fail(function() {
+                        showAlert('Error', 'Failed to initiate payment.', 'error');
+                    });
             }
         });
     </script>

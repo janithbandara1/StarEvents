@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StarEvents.Models;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,9 @@ builder.Services.AddControllersWithViews();
 // Add EF Core DbContext
 builder.Services.AddDbContext<StarEventsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("StarEventsDb")));
+
+// Configure Stripe
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 // Add session support
 builder.Services.AddDistributedMemoryCache();

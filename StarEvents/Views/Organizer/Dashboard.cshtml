@@ -21,15 +21,22 @@
             <h4 class="mb-4">Organizer</h4>
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a class="nav-link active" id="menu-events" href="#" onclick="showSection('events')">Manage Events</a>
+                    <a class="nav-link active" id="menu-dashboard" href="#" onclick="showSection('dashboard')">
+                        <i class="bi bi-house-door me-2"></i>Dashboard
+                    </a>
                 </li>
-                <li>
-                    <a class="nav-link" id="menu-reports" href="#" onclick="showSection('reports')">Reports</a>
-                    <ul class="nav flex-column ms-3">
-                        <li>
-                            <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">Sales Report</a>
-                        </li>
-                    </ul>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-events" href="#" onclick="showSection('events')">Manage Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-profile" href="@Url.Action("Profile", "Organizer")">
+                        <i class="bi bi-person me-2"></i>My Profile
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="menu-sales-report" href="#" onclick="showSection('sales-report')">
+                        <i class="bi bi-graph-up me-2"></i>Sales Report
+                    </a>
                 </li>
             </ul>
         </div>
@@ -43,8 +50,21 @@
 
     <!-- Main Content -->
     <div class="flex-grow-1 p-4">
+        <!-- Dashboard Section -->
+        <div id="section-dashboard">
+            <h3><i class="bi bi-house-door me-2"></i>Dashboard Overview</h3>
+            <div id="loading-dashboard" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div class="row" id="dashboard-stats">
+                <!-- Stats will be loaded here -->
+            </div>
+        </div>
+
         <!-- Manage Events Section -->
-        <div id="section-events">
+        <div id="section-events" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3>Manage Events</h3>
                 <button class="btn btn-primary" onclick="openEventDialog('add')">Add Event</button>
@@ -73,7 +93,12 @@
 
         <!-- Sales Report Section -->
         <div id="section-sales-report" style="display:none;">
-            <h3>Sales Report</h3>
+            <h3><i class="bi bi-graph-up me-2"></i>Sales Report</h3>
+            <div id="loading-sales-report" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -167,7 +192,7 @@
     let currentEventId = null;
 
     $(document).ready(function() {
-        loadEvents();
+        loadDashboardStats();
         
         // Form submission handler
         $('#eventForm').on('submit', function(e) {
@@ -182,12 +207,80 @@
         $('#menu-' + section).addClass('active');
         
         // Show/hide sections
+        $('#section-dashboard').toggle(section === 'dashboard');
         $('#section-events').toggle(section === 'events');
         $('#section-sales-report').toggle(section === 'sales-report');
         
         if (section === 'events') {
             loadEvents();
+        } else if (section === 'dashboard') {
+            loadDashboardStats();
+        } else if (section === 'sales-report') {
+            loadSalesReport();
         }
+    }
+
+    function loadDashboardStats() {
+        $('#loading-dashboard').show();
+        $.get('@Url.Action("GetDashboardStats", "Organizer")')
+            .done(function(response) {
+                if (response.success) {
+                    displayDashboardStats(response.data);
+                } else {
+                    showToast('Error', response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showToast('Error', 'Failed to load dashboard stats. Please try again.', 'error');
+            })
+            .always(function() {
+                $('#loading-dashboard').hide();
+            });
+    }
+
+    function displayDashboardStats(data) {
+        const statsContainer = $('#dashboard-stats');
+        statsContainer.empty();
+
+        const statsHtml = `
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-calendar-event display-4 text-primary"></i>
+                        <h4 class="card-title">${data.totalEvents}</h4>
+                        <p class="card-text">Total Events</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-check-circle display-4 text-success"></i>
+                        <h4 class="card-title">${data.activeEvents}</h4>
+                        <p class="card-text">Active Events</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-ticket-perforated display-4 text-warning"></i>
+                        <h4 class="card-title">${data.totalTicketsSold}</h4>
+                        <p class="card-text">Tickets Sold</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-cash display-4 text-info"></i>
+                        <h4 class="card-title">$${parseFloat(data.totalRevenue).toFixed(2)}</h4>
+                        <p class="card-text">Total Revenue</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        statsContainer.html(statsHtml);
     }
 
     function loadEvents() {
@@ -362,6 +455,45 @@
         
         const bsToast = new bootstrap.Toast(toast[0]);
         bsToast.show();
+    }
+
+    function loadSalesReport() {
+        $('#loading-sales-report').show();
+        $.get('@Url.Action("GetSalesReport", "Organizer")')
+            .done(function(response) {
+                if (response.success) {
+                    displaySalesReport(response.data);
+                } else {
+                    showToast('Error', response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showToast('Error', 'Failed to load sales report. Please try again.', 'error');
+            })
+            .always(function() {
+                $('#loading-sales-report').hide();
+            });
+    }
+
+    function displaySalesReport(data) {
+        const tbody = $('#sales-report-table-body');
+        tbody.empty();
+        
+        if (data.length === 0) {
+            tbody.append('<tr><td colspan="3" class="text-center">No sales data available.</td></tr>');
+            return;
+        }
+        
+        data.forEach(function(item) {
+            const row = `
+                <tr>
+                    <td>${item.eventTitle}</td>
+                    <td>${item.ticketsSold}</td>
+                    <td>$${parseFloat(item.totalSales).toFixed(2)}</td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
     }
 </script>
 </body>
