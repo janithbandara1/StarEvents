@@ -61,7 +61,7 @@ namespace StarEvents.Controllers
 
         // POST: Tickets/Purchase
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        //[ValidateAntiForgeryToken]  Using AJAX, so not needed
         public async Task<IActionResult> ProcessPurchase(int eventId, string paymentMethod)
         {
             var userId = HttpContext.Session.GetInt32("UserId");

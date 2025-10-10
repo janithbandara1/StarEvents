@@ -91,7 +91,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showMyTickets()">
+                        <a class="nav-link" href="#" >
                             <i class="bi bi-ticket-perforated me-1"></i>My Tickets
                         </a>
                     </li>
@@ -275,6 +275,62 @@
         </div>
     </div>
 
+    <!-- Purchase Success Modal -->
+    <div class="modal fade" id="purchaseSuccessModal" tabindex="-1" aria-labelledby="purchaseSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="purchaseSuccessModalLabel">
+                        <i class="bi bi-check-circle-fill me-2"></i>Purchase Successful!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-3">Thank You for Your Purchase!</h4>
+                    <p class="text-muted mb-4">Your ticket has been confirmed and sent to your email.</p>
+
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <div class="row text-start">
+                                <div class="col-6">
+                                    <small class="text-muted">Event</small>
+                                    <p class="mb-2 fw-bold" id="successEventName">Event Name</p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Date</small>
+                                    <p class="mb-2 fw-bold" id="successEventDate">Date</p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Ticket Type</small>
+                                    <p class="mb-2 fw-bold" id="successTicketType">General Admission</p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Order ID</small>
+                                    <p class="mb-2 fw-bold" id="successOrderId">#12345</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="small text-muted">
+                        <i class="bi bi-envelope me-1"></i>
+                        A confirmation email with your ticket details has been sent to your registered email address.
+                    </p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="viewTicketBtn">
+                        <i class="bi bi-ticket-detailed me-2"></i>View My Tickets
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -435,10 +491,6 @@
             searchEvents();
         }
 
-        function showMyTickets() {
-            showAlert('Info', 'My Tickets feature coming soon!', 'info');
-        }
-
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -472,7 +524,20 @@
 
         $('#buyTicketBtn').on('click', function() {
             if (currentEventId) {
-                showAlert('Info', 'Ticket purchasing feature coming soon!', 'info');
+                // showAlert('Info', 'Ticket purchasing feature coming soon! 2', 'info');
+
+                $.post('@Url.Action("ProcessPurchase", "Tickets")', {
+                    eventId: currentEventId,
+                    paymentMethod: "Card"
+                })
+                .done(function(response) {
+                    console.log('Success:', response);
+                    if(response.success == true)
+                        $('#purchaseSuccessModal').modal('show');
+                })
+                .fail(function(xhr, status, error) {
+                    console.error('Error:', error);
+                });
             }
         });
     </script>
