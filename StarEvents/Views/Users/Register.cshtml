@@ -15,10 +15,19 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StarEvents.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <div class="container-fluid">
-        <div class="row justify-content-center align-items-center min-vh-100">
-            <div class="col-md-6">
+<body style="margin: 0; padding: 0; overflow-x: hidden;">
+<div class="container-fluid p-0 m-0">
+    <div class="row min-vh-100 g-0 m-0">
+        <!-- Left Side - Image -->
+        <div class="col-md-6 p-0" style="overflow: hidden;">
+            <img src="~/images/1753453162925_35d8c268-ff10-41a9-ab8c-b40034a4ab73.jpg_0_15502855965055825554.jpg" 
+                 alt="Register Background" 
+                 style="height: 100vh; width: 100%; object-fit: cover; object-position: center; display: block;" />
+        </div>
+            
+        <!-- Right Side - Register Form -->
+        <div class="col-md-6 d-flex align-items-center justify-content-center">
+            <div class="w-75">
                 <h2>Register</h2>
                 <hr />
                 <form asp-action="Register" method="post">
@@ -69,6 +78,7 @@
             </div>
         </div>
     </div>
+</div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
