@@ -137,6 +137,12 @@ namespace StarEvents.Controllers
                 return Json(new { success = false, message = "Unauthorized." });
             }
 
+            // Check if the event has any sold tickets
+            if (await _context.Tickets.AnyAsync(t => t.EventId == id))
+            {
+                return Json(new { success = false, message = "Cannot delete event with sold tickets." });
+            }
+
             _context.Events.Remove(eventItem);
             await _context.SaveChangesAsync();
 
